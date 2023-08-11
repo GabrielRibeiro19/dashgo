@@ -35,7 +35,7 @@ export function makeServer() {
       this.namespace = 'api';
       this.timing = 750; // Delay de 750 milisegundos, para testar onload, spinner etc.
 
-      this.get('/users', function (schema, request) {
+      this.get('/users', function (this: any, schema, request) {
         const { page = 1, per_page = 10 } = request.queryParams
         const total = schema.all('user').length
 

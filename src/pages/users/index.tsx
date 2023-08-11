@@ -2,9 +2,8 @@ import { Header } from "@/components/Header";
 import { Pagination } from "@/components/Pagination";
 import { Sidebar } from "@/components/Sidebar";
 import { useUsers } from "@/services/hooks/useUsers";
-import { Box, Button, Checkbox, Flex, Heading, Icon, Spinner, Table, Tbody, Td, Text, Th, Thead, Tr, useBreakpointValue } from "@chakra-ui/react";
+import { Box, Button, Checkbox, Flex, Heading, Icon, Link, Spinner, Table, Tbody, Td, Text, Th, Thead, Tr, useBreakpointValue } from "@chakra-ui/react";
 import NextLink from "next/link";
-import Link from 'react-query'
 import { useState } from "react";
 import { RiAddLine, RiPencilLine } from "react-icons/ri";
 import { queryClient } from "@/services/queryClient";
@@ -40,7 +39,7 @@ export default function UserList() {
               Usuários
               {!isLoading && isFetching && <Spinner size="sm" color="gray.500" ml="4" />}
               </Heading>
-            <NextLink href="/users/create" passHref>
+            <NextLink legacyBehavior href="/users/create" passHref>
               <Button as="a" size="sm" fontSize="sm" colorScheme="pink" leftIcon={<Icon as={RiAddLine} fontSize="20" />}>
                 Criar novo
               </Button>
@@ -94,11 +93,13 @@ export default function UserList() {
 
                 </Tbody>
               </Table>
-              <Pagination
-              totalCountOfRegisters={data?.totalCount}
-              currentPage={page}
-              onPageChange={setPage}
-              />
+              {data?.totalCount && (
+                <Pagination
+                  totalCountOfRegisters={data.totalCount}
+                  currentPage={page}
+                  onPageChange={setPage}
+                  />
+              )}
             </>
           )}
         </Box>

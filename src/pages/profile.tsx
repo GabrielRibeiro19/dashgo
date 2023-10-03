@@ -1,7 +1,7 @@
 import { Input } from "@/components/Form/Input";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
-import { Box, Button, Divider, Flex, HStack, Heading, SimpleGrid, VStack } from "@chakra-ui/react";
+import { AbsoluteCenter, Box, Button, Divider, Flex, HStack, Heading, SimpleGrid, Text, VStack } from "@chakra-ui/react";
 import Link from "next/link";
 import { useMutation } from 'react-query'
 import InputMask from "react-input-mask";
@@ -12,11 +12,12 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import { queryClient } from "@/services/queryClient";
 import { useRouter } from "next/router";
 import { api } from "@/services/apiClient";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import axios from "axios";
 import React from "react";
+import { withSSRAuth } from "@/utils/withSSRAuth";
+import { setupAPIClient } from "@/services/api";
 import Head from "next/head";
-
 
 type ViaCepAPI = {
   bairro: string;
@@ -27,7 +28,7 @@ type ViaCepAPI = {
   uf: string;
 }
 
-const createUserFormSchema = yup.object().shape({
+const updateUserFormSchema = yup.object().shape({
   name: yup.string().required('Nome obrigatório'),
   email: yup.string().required('Email obrigatório').email('Email inválido'),
   cellphone: yup.string().required('Celular obrigatório'),
@@ -37,21 +38,47 @@ const createUserFormSchema = yup.object().shape({
   uf: yup.string(),
   complemento: yup.string(),
   cidade: yup.string(),
-  password: yup.string().required('Senha obrigatória').min(6, 'No mínimo 6 caracteres'),
-  password_confirmation: yup.string().required("A confirmação de senha é obrigatória.").oneOf([
-    yup.ref('password'),
-  ], 'As senhas precisam ser iguais'
-  )
+  password: yup.string(),
+  password_confirmation: yup.string()
 })
 
-type CreateUser = yup.InferType<typeof createUserFormSchema>;
+interface UpdateUser extends yup.InferType<typeof updateUserFormSchema> {
+  id?: string
+}
 
-export default function CreateUser() {
+type UserProps = {
+  userProps: UpdateUser
+}
+
+export default function EditUser({ userProps }: UserProps) {
+
+  const {
+    id,
+    cellphone,
+    cep,
+    cidade,
+    complemento,
+    email,
+    name,
+    number,
+    road,
+    uf } = userProps
 
   const router = useRouter()
 
   const { register, handleSubmit, setValue, getValues, setFocus, formState: { errors, isSubmitting } } = useForm({
-    resolver: yupResolver(createUserFormSchema)
+    resolver: yupResolver(updateUserFormSchema),
+    defaultValues: {
+      cellphone,
+      cep,
+      cidade,
+      complemento,
+      email,
+      name,
+      number,
+      road,
+      uf,
+    }
   })
 
   const buscarCep = async () => {
@@ -70,34 +97,35 @@ export default function CreateUser() {
 
       setFocus('number')
     } catch (error) {
-      toast.error("Erro ao buscar o CEP: " + cep);
+      toast.error("Erro ao buscar o CEP");
     }
   };
 
-  const createUser = useMutation(async ({ name, email, password, cellphone, number, road, complemento, cidade, uf, cep }: CreateUser) => {
-    const response = await api.post('users', {
-      name, email, password, cellphone, number, road, cep, complemento, cidade, uf
-    })
-    return response.data.user
-  }, {
-    onSuccess: () => {
-      toast.success('Usuário criado com sucesso!');
-      queryClient.invalidateQueries('users')
-    }
-  })
 
-  const handleCreateUser: SubmitHandler<CreateUser> = async (values) => {
-    await createUser.mutateAsync(values)
-    router.push('/users')
+
+  const handleEditUser: SubmitHandler<UpdateUser> = async (values) => {
+    try {
+      const response = await api.put(`users/profile/${id}`, values)
+      // console.log(response)
+      toast.success('Perfil Editado com sucesso!');
+      queryClient.invalidateQueries('users')
+
+      setValue('password', '')
+      setValue('password_confirmation', '')
+    }
+
+    catch (err) {
+      toast.error('Ocorreu um erro.');
+      console.log(err)
+    }
   }
   return (
     <>
       <Head>
-        <title>Criar Usuário - Aluguel de Mesas Gonçalo</title>
+        <title>Perfil de {name} - Aluguel de Mesas Gonçalo</title>
       </Head>
       <Box>
         <Header />
-        <ToastContainer />
         <Flex w="100%" my="6" maxWidth={1480} mx="auto" px="6">
           <Sidebar />
           <Box
@@ -107,9 +135,9 @@ export default function CreateUser() {
             bg="gray.800"
             p={["6",
               "8"]}
-            onSubmit={handleSubmit(handleCreateUser)}
+            onSubmit={handleSubmit(handleEditUser)}
           >
-            <Heading size="lg" fontWeight="normal">Criar usuário</Heading>
+            <Heading size="lg" fontWeight="normal">Editar Perfil</Heading>
 
             <Divider my="6" borderColor="gray.700" />
 
@@ -132,15 +160,20 @@ export default function CreateUser() {
                 <Input label="Complemento" {...register('complemento')} error={errors.complemento} />
               </SimpleGrid>
 
+
+              <Divider height={10} w="100%" />
+              <Text as="h3" fontSize="1.5rem">Alterar senha</Text>
+
+
               <SimpleGrid minChildWidth="240px" spacing={["6", "8"]} w="100%">
-                <Input type="password" label="Senha" {...register('password')} error={errors.password} />
+                <Input type="password" label="Nova senha" {...register('password')} error={errors.password} />
                 <Input type="password" {...register('password_confirmation')} label="Confirmação da senha" error={errors.password_confirmation} />
               </SimpleGrid>
             </VStack>
 
             <Flex mt="8" justify="flex-end">
               <HStack spacing="4">
-                <Button as={Link} href="/users" colorScheme="whiteAlpha">Cancelar</Button>
+                <Button as={Link} href="/dashboard" colorScheme="whiteAlpha">Cancelar</Button>
                 <Button
                   type="submit"
                   colorScheme="pink"
@@ -154,3 +187,17 @@ export default function CreateUser() {
     </>
   )
 }
+
+export const getServerSideProps = withSSRAuth(async (ctx) => {
+
+  const apiClient = setupAPIClient(ctx)
+  const response = await apiClient.get(`users/profile`)
+  const { data } = response
+  // console.log(data)
+  //const {users, totalCount} = aqqqqqqqqwait getUsers(1)
+  return {
+    props: {
+      userProps: data
+    }
+  }
+});

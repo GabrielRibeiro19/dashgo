@@ -1,7 +1,7 @@
 import { Input } from "@/components/Form/Input";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
-import { Box, Button, Divider, Flex, HStack, Heading, SimpleGrid, VStack } from "@chakra-ui/react";
+import { Box, Button, Divider, Flex, HStack, Heading, SimpleGrid, Text, VStack } from "@chakra-ui/react";
 import Link from "next/link";
 import { useMutation } from 'react-query'
 import InputMask from "react-input-mask";
@@ -15,8 +15,23 @@ import { api } from "@/services/apiClient";
 import { ToastContainer, toast } from "react-toastify";
 import axios from "axios";
 import React from "react";
+import { withSSRGuest } from "@/utils/withSSRGuest";
 import Head from "next/head";
 
+type CreateUserFormData = {
+  name: string;
+  email: string
+  password: string;
+  cellphone: string;
+  avatar?: string;
+  cep?: string;
+  complemento?: string;
+  cidade?: string;
+  uf?: string;
+  road: string;
+  number: string;
+  senha_confirmacao: string
+}
 
 type ViaCepAPI = {
   bairro: string;
@@ -44,9 +59,7 @@ const createUserFormSchema = yup.object().shape({
   )
 })
 
-type CreateUser = yup.InferType<typeof createUserFormSchema>;
-
-export default function CreateUser() {
+export default function Cadastro() {
 
   const router = useRouter()
 
@@ -74,32 +87,33 @@ export default function CreateUser() {
     }
   };
 
-  const createUser = useMutation(async ({ name, email, password, cellphone, number, road, complemento, cidade, uf, cep }: CreateUser) => {
+  const createUser = useMutation(async ({ name, email, password, cellphone, number, road, complemento, cidade, uf, cep }: CreateUserFormData) => {
     const response = await api.post('users', {
       name, email, password, cellphone, number, road, cep, complemento, cidade, uf
     })
     return response.data.user
   }, {
     onSuccess: () => {
-      toast.success('Usuário criado com sucesso!');
-      queryClient.invalidateQueries('users')
+      toast.success('Cadastro realizado com sucesso!');
     }
   })
 
-  const handleCreateUser: SubmitHandler<CreateUser> = async (values) => {
+  const handleCreateUser: SubmitHandler<CreateUserFormData> = async (values) => {
     await createUser.mutateAsync(values)
-    router.push('/users')
+    router.push('/')
   }
   return (
     <>
       <Head>
-        <title>Criar Usuário - Aluguel de Mesas Gonçalo</title>
+        <title>Criar Conta - Aluguel de Mesas Gonçalo</title>
       </Head>
-      <Box>
-        <Header />
-        <ToastContainer />
-        <Flex w="100%" my="6" maxWidth={1480} mx="auto" px="6">
-          <Sidebar />
+      <Flex
+        w="100vw"
+        h="100vh"
+
+        alignItems="center"
+        justify="center">
+        <Flex w="100%" my="6" maxWidth={1080} mx="auto" px="6">
           <Box
             as="form"
             flex="1"
@@ -109,7 +123,7 @@ export default function CreateUser() {
               "8"]}
             onSubmit={handleSubmit(handleCreateUser)}
           >
-            <Heading size="lg" fontWeight="normal">Criar usuário</Heading>
+            <Heading size="lg" fontWeight="normal">Cadastro</Heading>
 
             <Divider my="6" borderColor="gray.700" />
 
@@ -138,19 +152,29 @@ export default function CreateUser() {
               </SimpleGrid>
             </VStack>
 
-            <Flex mt="8" justify="flex-end">
+            <Flex mt="8" justify="flex-end" alignItems="center">
               <HStack spacing="4">
-                <Button as={Link} href="/users" colorScheme="whiteAlpha">Cancelar</Button>
+                <Text as="span" >
+                  <Link href="/">
+                    Já tem uma conta? <Text as="span" color="green.400">Faça login</Text>
+                  </Link>
+                </Text>
                 <Button
                   type="submit"
                   colorScheme="pink"
                   isLoading={isSubmitting}
-                >Salvar</Button>
+                >Criar conta</Button>
               </HStack>
             </Flex>
           </Box>
         </Flex>
-      </Box>
+      </Flex>
     </>
   )
 }
+
+export const getServerSideProps = withSSRGuest(async (ctx) => {
+  return {
+    props: {}
+  }
+});

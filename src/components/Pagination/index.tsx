@@ -22,7 +22,7 @@ export function Pagination({
   totalCountOfRegisters,
   currentPage = 1,
   onPageChange,
-  registersPerPage = 10
+  registersPerPage = 5
 }: PaginationProps) {
   const lastPage = Math.floor(totalCountOfRegisters / registersPerPage);
 

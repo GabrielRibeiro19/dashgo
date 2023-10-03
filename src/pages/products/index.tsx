@@ -1,44 +1,54 @@
 import { Header } from "@/components/Header";
 import { Pagination } from "@/components/Pagination";
 import { Sidebar } from "@/components/Sidebar";
-import { Box, Button, Checkbox, Flex, HStack, Heading, Icon, Link, Spinner, Table, Tbody, Td, Text, Th, Thead, Tr, useBreakpointValue, useDisclosure } from "@chakra-ui/react";
+import { Box, Button, Checkbox, Flex, HStack, Heading, Icon, Link, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Spinner, StepTitle, Switch, Table, Tbody, Td, Text, Th, Thead, Tr, useBreakpointValue, useDisclosure } from "@chakra-ui/react";
 import NextLink from "next/link";
 import { useState } from "react";
 import { RiAddLine, RiPencilLine } from "react-icons/ri";
+import { BsTrash3 } from 'react-icons/bs'
 import { queryClient } from "@/services/queryClient";
 import { api } from "@/services/apiClient";
 import { withSSRAuth } from "@/utils/withSSRAuth";
 import Head from "next/head";
+import { toast } from "react-toastify";
+import { useListProducts } from "@/hooks/products/listProducts";
+import { useDeleteProduct } from "@/hooks/products/deleteProduct";
 import { ButtonDelete } from "@/hooks/ModalDelete";
-import { useListUsers } from "@/hooks/users/listUsers";
-import { useDeleteUser } from "@/hooks/users/deleteUser";
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  cellphone: string;
-  created_at: string;
+import { usePatchAvailableProduct } from "@/hooks/products/patchAvailableProduct";
+import { AvailableSwitch } from "@/hooks/AvailableSwitch";
+interface Products {
+  id: string
+  title: string;
+  description: string;
+  price: number;
+  amount_available: string;
+  available: boolean;
+  created_at: string
 }
 
-type userProps = {
-  users: User[]
+type productProps = {
+  products: Products[]
 }
 
-export default function UserList({ users }: any) {
+export default function ProductsList({ products }: any) {
   const [page, setPage] = useState(1);
+  const [productSelected, setProductSelected] = useState<Products | undefined>();
 
-  const { data, isLoading, isFetching, error } = useListUsers(page, {
-    initialData: users,
+  const { isOpen, onClose, onOpen } = useDisclosure()
+
+  const { data, isLoading, isFetching, error } = useListProducts(page, {
+    initialData: products,
   })
+
 
   const isWideVersion = useBreakpointValue({
     base: false,
     lg: true
   })
 
-  async function handlePrefetchUser({ userId }: any) {
-    await queryClient.prefetchQuery(['user', userId], async () => {
-      const response = await api.get('users')
+  async function handlePrefetchProduct({ productId }: any) {
+    await queryClient.prefetchQuery(['products', productId], async () => {
+      const response = await api.get('products')
       //console.log(response)
       return response.data;
     }, {
@@ -46,15 +56,10 @@ export default function UserList({ users }: any) {
     })
   }
 
-  async function handleDeleteUser(id: string) {
-
-
-  }
-
   return (
     <>
       <Head>
-        <title>Usuários - Aluguel de Mesas Gonçalo</title>
+        <title>Produtos - Aluguel de Mesas Gonçalo</title>
       </Head>
 
       <Box>
@@ -64,10 +69,10 @@ export default function UserList({ users }: any) {
           <Box flex="1" borderRadius={8} bg="gray.800" p="8">
             <Flex mb="8" justify="space-between" align="center">
               <Heading size="lg" fontWeight="normal">
-                Usuários
+                Produtos Cadastrados
                 {!isLoading && isFetching && <Spinner size="sm" color="gray.500" ml="4" />}
               </Heading>
-              <NextLink href="/users/create" passHref>
+              <NextLink href="/products/create" passHref>
                 <Button as="button" size="sm" fontSize="sm" colorScheme="pink" leftIcon={<Icon as={RiAddLine} fontSize="20" />}>
                   Criar novo
                 </Button>
@@ -79,7 +84,7 @@ export default function UserList({ users }: any) {
               </Flex>
             ) : error ? (
               <Flex justify="center">
-                <Text>Falha ao obter dados dos usuários</Text>
+                <Text>Falha ao obter dados dos produtos</Text>
               </Flex>
             ) : (
               <>
@@ -89,37 +94,45 @@ export default function UserList({ users }: any) {
                       <Th px={["4", "4", "6"]} color="gray.300" width="8">
                         <Checkbox colorScheme="pink" />
                       </Th>
-                      <Th>Usuário</Th>
+                      <Th>Nome</Th>
+                      <Th>Preço</Th>
+                      <Th>Quantidade Disponível</Th>
+                      <Th>Status</Th>
                       {isWideVersion && <Th>Data de cadastro</Th>}
                       <Th width="8"></Th>
                     </Tr>
                   </Thead>
                   <Tbody>
 
-
-                    {data?.users.map((user: User) => {
+                    {data?.products.map((product: Products) => {
                       return (
-                        <Tr key={user.id}>
+                        <Tr key={product.id}>
                           <Td px={["4", "4", "6"]}>
                             <Checkbox colorScheme="pink" />
                           </Td>
                           <Td>
                             <Box>
-                              <Link color="purple.400" href={`users/${user.id}`} onMouseEnter={() => handlePrefetchUser(user.id)}>
-                                <Text fontWeight="bold">{user.name}</Text>
+                              <Link color="purple.400" href={`products/${product.id}`} onMouseEnter={() => handlePrefetchProduct(product.id)}>
+                                <Text fontWeight="bold">{product.title}</Text>
                               </Link>
-                              <Text fontSize="sm" color="gray.300">{user.email}</Text>
+                              <Text fontSize="sm" color="gray.300">{product.description}</Text>
                             </Box>
                           </Td>
-                          {isWideVersion && <Td>{user.created_at}</Td>}
+                          <Td>{product.price}</Td>
+                          <Td textAlign="center">{product.amount_available}</Td>
+                          <Td>
+                            <AvailableSwitch available={product.available} useAvailable={usePatchAvailableProduct} id={product.id} />
+                          </Td>
+                          {isWideVersion && <Td>{product.created_at}</Td>}
+
 
                           <Td>
                             <HStack>
 
-                              <Button as={Link} href={`users/${user.id}`} size="sm" fontSize="sm" colorScheme="purple" leftIcon={<Icon as={RiPencilLine} fontSize="16" />}>
+                              <Button as={Link} href={`products/${product.id}`} size="sm" fontSize="sm" colorScheme="purple" leftIcon={<Icon as={RiPencilLine} fontSize="16" />}>
                                 Editar
                               </Button>
-                              <ButtonDelete id={user.id} description="Tem certeza que deseja excluir o usuário?" title="Excluir usuário" useDelete={useDeleteUser} />
+                              <ButtonDelete id={product.id} description="Tem certeza que deseja excluir o produto?" title="Excluir produto" useDelete={useDeleteProduct} />
                             </HStack>
                           </Td>
                         </Tr>
